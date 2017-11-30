@@ -229,6 +229,7 @@ int jtag_unregister_event_callback(jtag_event_handler_t f, void *x);
 
 int jtag_call_event_callbacks(enum jtag_event event);
 
+const char *jtag_get_name(void);
 
 /** @returns The current JTAG speed setting. */
 int jtag_get_speed(int *speed);

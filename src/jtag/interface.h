@@ -325,6 +325,7 @@ struct jtag_interface {
 };
 
 extern const char * const jtag_only[];
+extern const char * const jtag_and_swd[];
 
 void adapter_assert_reset(void);
 void adapter_deassert_reset(void);

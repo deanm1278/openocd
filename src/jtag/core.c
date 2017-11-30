@@ -131,6 +131,12 @@ static struct jtag_interface *jtag;
 /* configuration */
 struct jtag_interface *jtag_interface;
 
+const char *jtag_get_name(void)
+{
+	return jtag == NULL ? NULL : jtag->name;
+}
+
+
 void jtag_set_flush_queue_sleep(int ms)
 {
 	jtag_flush_queue_sleep = ms;

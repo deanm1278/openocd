@@ -96,8 +96,13 @@ static uint32_t max_tar_block_size(uint32_t tar_autoincr_block, uint32_t address
 
 static int mem_ap_setup_csw(struct adiv5_ap *ap, uint32_t csw)
 {
+#if 0
 	csw = csw | CSW_DBGSWENABLE | CSW_MASTER_DEBUG | CSW_HPROT |
 		ap->csw_default;
+#else
+	csw = csw | CSW_HPROT | CSW_SPIDEN | (1 << 24) |
+		CSW_DEVICE_EN | ap->csw_default;
+#endif
 
 	if (csw != ap->csw_value) {
 		/* LOG_DEBUG("DAP: Set CSW %x",csw); */
@@ -309,16 +314,18 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 
 	while (nbytes > 0) {
 		uint32_t this_size = size;
-
+#if 0
 		/* Select packed transfer if possible */
-		if (addrinc && ap->packed_transfers && nbytes >= 4
-				&& max_tar_block_size(ap->tar_autoincr_block, address) >= 4) {
+		if (addrinc && dap->packed_transfers && nbytes >= 4
+				&& max_tar_block_size(dap->tar_autoincr_block, address) >= 4) {
 			this_size = 4;
-			retval = mem_ap_setup_csw(ap, csw_size | CSW_ADDRINC_PACKED);
+			retval = mem_ap_setup_csw(dap, csw_size | CSW_ADDRINC_PACKED);
 		} else {
-			retval = mem_ap_setup_csw(ap, csw_size | csw_addrincr);
+			retval = mem_ap_setup_csw(dap, csw_size | csw_addrincr);
 		}
-
+#else
+		retval = mem_ap_setup_csw(dap, csw_size | csw_addrincr);
+#endif
 		if (retval != ERROR_OK)
 			break;
 
@@ -447,15 +454,18 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 	 * and alignment. */
 	while (nbytes > 0) {
 		uint32_t this_size = size;
-
+#if 0
 		/* Select packed transfer if possible */
-		if (addrinc && ap->packed_transfers && nbytes >= 4
-				&& max_tar_block_size(ap->tar_autoincr_block, address) >= 4) {
+		if (addrinc && dap->packed_transfers && nbytes >= 4
+				&& max_tar_block_size(dap->tar_autoincr_block, address) >= 4) {
 			this_size = 4;
-			retval = mem_ap_setup_csw(ap, csw_size | CSW_ADDRINC_PACKED);
+			retval = mem_ap_setup_csw(dap, csw_size | CSW_ADDRINC_PACKED);
 		} else {
-			retval = mem_ap_setup_csw(ap, csw_size | csw_addrincr);
+			retval = mem_ap_setup_csw(dap, csw_size | csw_addrincr);
 		}
+#else
+		retval = mem_ap_setup_csw(dap, csw_size | csw_addrincr);
+#endif
 		if (retval != ERROR_OK)
 			break;
 

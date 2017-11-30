@@ -17,6 +17,7 @@ noinst_LTLIBRARIES += %D%/libtarget.la
 	$(ARMV7_SRC) \
 	$(ARM_MISC_SRC) \
 	$(AVR32_SRC) \
+	$(BFINPLUS_SRC) \
 	$(MIPS32_SRC) \
 	$(NDS32_SRC) \
 	$(INTEL_IA32_SRC) \
@@ -104,6 +105,13 @@ AVR32_SRC = \
 	%D%/avr32_jtag.c \
 	%D%/avr32_mem.c \
 	%D%/avr32_regs.c
+
+BFINPLUS_SRC = \
+	%D%/bfinplus.c \
+	%D%/bfinplus_dap.c \
+	%D%/bfinplus_mem.c \
+	%D%/blackfin_insn.c \
+	%D%/blackfin_memory_map.c
 
 MIPS32_SRC = \
 	%D%/mips32.c \

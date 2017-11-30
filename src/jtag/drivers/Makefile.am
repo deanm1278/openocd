@@ -158,6 +158,10 @@ if KITPROG
 DRIVERFILES += %D%/kitprog.c
 endif
 
+if ICE_1000
+DRIVERFILES += %D%/ice1000.c
+endif
+
 DRIVERHEADERS = \
 	%D%/bitbang.h \
 	%D%/bitq.h \
