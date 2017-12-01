@@ -928,14 +928,22 @@ static int bfinplus_remove_watchpoint(struct target *target, struct watchpoint *
 static int bfinplus_target_create(struct target *target, Jim_Interp *interp)
 {
   struct bfinplus_common *bfinplus = calloc(1, sizeof(struct bfinplus_common));
+  struct bfinplus_dap *bfin_dap = &bfinplus->dap;
   struct Jim_Obj *objPtr;
   const char *map;
   char *end;
   struct jtag_tap *tap = target->tap;
 
   target->arch_info = bfinplus;
-
-  struct adiv5_dap *dap = &bfinplus->dap.dap;
+  
+  if (!tap->dap) {
+		tap->dap = dap_init();
+	
+		/* Leave (only) generic DAP stuff for debugport_init() */
+		tap->dap->tap = tap;
+  }
+  bfin_dap->dap = tap->dap;
+  
 
   bfinplus->common_magic = BFINPLUS_COMMON_MAGIC;
   strcpy(bfinplus->part, target_name(target));
@@ -1051,19 +1059,6 @@ static int bfinplus_target_create(struct target *target, Jim_Interp *interp)
 
   bfinplus->dmem_control = 0;
   bfinplus->imem_control = 0;
-
-  /* prepare JTAG information for the new target */
-  bfinplus->jtag_info.tap = tap;
-  bfinplus->jtag_info.scann_size = 4;
-
-#if 0
-  /* Leave (only) generic DAP stuff for debugport_init() */
-  dap->jtag_info = &bfinplus->jtag_info;
-  dap->tar_autoincr_block = (1 << 10);
-  dap->memaccess_tck = 80;
-#endif
-  tap->dap = dap;
-  dap->tap = tap;
 
   return ERROR_OK;
 }
@@ -1189,7 +1184,7 @@ static int bfinplus_examine(struct target *target)
 {
   struct bfinplus_common *bfinplus = target_to_bfinplus(target);
   struct bfinplus_dap *dap = &bfinplus->dap;
-  struct adiv5_dap *swjdp = &dap->dap;
+  struct adiv5_dap *swjdp = dap->dap;
   int i;
   int retval = ERROR_OK;
 

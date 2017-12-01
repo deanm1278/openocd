@@ -75,7 +75,7 @@ struct bfinplus_cti
 struct bfinplus_dap
 {
 	struct target *target;
-	struct adiv5_dap dap;
+	struct adiv5_dap *dap;
 	struct adiv5_ap *debug_ap;
 	struct adiv5_ap *memory_ap;
 	struct bfinplus_cti syscti;

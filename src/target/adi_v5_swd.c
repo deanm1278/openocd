@@ -339,7 +339,7 @@ int dap_to_swd(struct target *target)
 	if(!strcmp(type->name, "bfinplus")){
 			struct bfinplus_common *bfin = target_to_bfinplus(target);
 			struct bfinplus_dap *bfin_dap = &bfin->dap;
-			dap = &bfin_dap->dap;
+			dap = bfin_dap->dap;
 	}
 	else{
 		struct arm *arm = target_to_arm(target);
@@ -441,7 +441,7 @@ static int swd_init(struct command_context *ctx)
 	if(!strcmp(type->name, "bfinplus")){
 		struct bfinplus_common *bfin = target_to_bfinplus(target);
 		struct bfinplus_dap *bfin_dap = &bfin->dap;
-		dap = &bfin_dap->dap;
+		dap = bfin_dap->dap;
 	
 		/* Force the DAP's ops vector for SWD mode.
 		 * messy - is there a better way? */

@@ -119,7 +119,7 @@ uint32_t offset, uint32_t *value)
 	struct bfinplus_dap *dap = &bfin->dap;
 
 	uint8_t buf[4];
-	retval = mem_ap_read_buf_noincr(dap->memory_ap, buf, sizeof(uint32_t), 1,
+	retval = mem_ap_read_buf_noincr(dap->debug_ap, buf, sizeof(uint32_t), 1,
 		ctibase + offset);
 
 	*value = buf_get_u32(buf, 0, 32);
@@ -136,7 +136,7 @@ uint32_t offset, uint32_t value)
 
 	uint8_t buf[4];
 	buf_set_u32(buf, 0, 32, value);
-	retval = mem_ap_write_buf(dap->memory_ap, buf, sizeof(uint32_t), 1,
+	retval = mem_ap_write_buf(dap->debug_ap, buf, sizeof(uint32_t), 1,
 		ctibase + offset);
 
 	return retval;
@@ -229,9 +229,13 @@ int bfinplus_mmr_get_indirect(struct target *target, uint32_t addr, uint32_t *va
 int bfinplus_mmr_set_indirect(struct target *target, uint32_t addr, uint32_t value)
 {
 	int retval;
+	uint32_t r0, p0;
 	struct bfinplus_common *bfin = target_to_bfinplus(target);
 
 	LOG_DEBUG("set mmr indirect 0x%08" PRIx32, addr);
+
+	p0 = bfinplus_get_p0(target);
+	r0 = bfinplus_get_r0(target);
 
 	if (addr == BFINPLUS_L1DM_DCTL)
     {
@@ -252,6 +256,10 @@ int bfinplus_mmr_set_indirect(struct target *target, uint32_t addr, uint32_t val
 	bfinplus_emuir_set(target, blackfin_gen_move(REG_R0, REG_EMUDAT));
 	//[P0] = R0
 	retval = bfinplus_emuir_set(target, blackfin_gen_store32(REG_P0, REG_R0));
+
+	bfinplus_set_p0(target, p0);
+	bfinplus_set_r0(target, r0);
+
 	return retval;
 }
 
