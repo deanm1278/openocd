@@ -324,7 +324,7 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 			retval = mem_ap_setup_csw(dap, csw_size | csw_addrincr);
 		}
 #else
-		retval = mem_ap_setup_csw(dap, csw_size | csw_addrincr);
+		retval = mem_ap_setup_csw(ap, csw_size | csw_addrincr);
 #endif
 		if (retval != ERROR_OK)
 			break;
@@ -464,7 +464,7 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 			retval = mem_ap_setup_csw(dap, csw_size | csw_addrincr);
 		}
 #else
-		retval = mem_ap_setup_csw(dap, csw_size | csw_addrincr);
+		retval = mem_ap_setup_csw(ap, csw_size | csw_addrincr);
 #endif
 		if (retval != ERROR_OK)
 			break;

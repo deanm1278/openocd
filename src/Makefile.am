@@ -12,6 +12,8 @@ bin_PROGRAMS += %D%/openocd
 
 %C%_openocd_LDADD += $(MINGWLDADD)
 
+%C%_openocd_LDADD += $(LIBEXPAT)
+
 if INTERNAL_JIMTCL
 %C%_openocd_LDADD += $(top_builddir)/jimtcl/libjim.a
 else

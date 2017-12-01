@@ -24,8 +24,8 @@ int parse_memory_map(struct target *target, const char *memory_map)
 struct memory_map_parsing_data
 {
 	const char *name;
-	struct blackfin_mem_map *mem_map;
-	struct blackfin_l1_map *l1_map;
+	struct bfinplus_mem_map *mem_map;
+	struct bfinplus_l1_map *l1_map;
 	char *processor;
 	char *core;
 	bool skip;
@@ -223,14 +223,14 @@ int parse_memory_map(struct target *target, const char *memory_map)
 	data.mem_map = calloc(1, sizeof (struct blackfin_mem_map));
 	if (!data.mem_map)
 	{
-		LOG_ERROR("%s: malloc(%"PRIzu") failed",
+		LOG_ERROR("%s: malloc(%Iu) failed",
 			target_name(target), sizeof (struct blackfin_mem_map));
 		return ERROR_FAIL;
 	}
 	data.l1_map = calloc(1, sizeof (struct blackfin_l1_map));
 	if (!data.l1_map)
 	{
-		LOG_ERROR("%s: malloc(%"PRIzu") failed",
+		LOG_ERROR("%s: malloc(%Iu) failed",
 			target_name(target), sizeof (struct blackfin_l1_map));
 		free(data.mem_map);
 		return ERROR_FAIL;
@@ -273,18 +273,18 @@ int parse_memory_map_bfinplus(struct target *target, const char *memory_map)
 	struct memory_map_parsing_data data;
 
 	data.name = blackfin->part;
-	data.mem_map = calloc(1, sizeof (struct blackfin_mem_map));
+	data.mem_map = calloc(1, sizeof (struct bfinplus_mem_map));
 	if (!data.mem_map)
 	{
-		LOG_ERROR("%s: malloc(%"PRIzu") failed",
-			target_name(target), sizeof (struct blackfin_mem_map));
+		LOG_ERROR("%s: malloc(%lu) failed",
+			target_name(target), sizeof (struct bfinplus_mem_map));
 		return ERROR_FAIL;
 	}
-	data.l1_map = calloc(1, sizeof (struct blackfin_l1_map));
+	data.l1_map = calloc(1, sizeof (struct bfinplus_l1_map));
 	if (!data.l1_map)
 	{
-		LOG_ERROR("%s: malloc(%"PRIzu") failed",
-			target_name(target), sizeof (struct blackfin_l1_map));
+		LOG_ERROR("%s: malloc(%lu) failed",
+			target_name(target), sizeof (struct bfinplus_l1_map));
 		free(data.mem_map);
 		return ERROR_FAIL;
 	}

@@ -15,8 +15,8 @@ struct bfinplus_common {
 	char part[BFINPLUS_PART_MAXLEN];
 	struct arm_jtag jtag_info;
 	struct bfinplus_dap dap;
-	const struct blackfin_mem_map *mem_map;
-	const struct blackfin_l1_map *l1_map;
+	const struct bfinplus_mem_map *mem_map;
+	const struct bfinplus_l1_map *l1_map;
 	const struct bfinplus_sdram_config *sdram_config;
 	const struct bfinplus_ddr_config *ddr_config;
 

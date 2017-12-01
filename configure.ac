@@ -4,6 +4,7 @@ AC_INIT([openocd], [0.10.0+dev],
 AC_CONFIG_SRCDIR([src/openocd.c])
 
 m4_include([config_subdir.m4])dnl
+m4_include([expat.m4])
 
 # check for makeinfo before calling AM_INIT_AUTOMAKE
 AC_CHECK_PROG([MAKEINFO], [makeinfo], [makeinfo])
@@ -110,8 +111,8 @@ m4_define([ADAPTER_OPT], [m4_translit(ADAPTER_ARG($1), [_], [-])])
 
 m4_define([USB1_ADAPTERS],
 	[[[ftdi], [MPSSE mode of FTDI based devices], [FTDI]],
-  [[ice-1000], [Analog Devices ICE-1000], [ICE_1000]],
-  [[ice-2000], [Analog Devices ICE-2000], [ICE_2000]],
+  [[ice_1000], [Analog Devices ICE-1000], [ICE_1000]],
+  [[ice_2000], [Analog Devices ICE-2000], [ICE_2000]],
 	[[stlink], [ST-Link JTAG Programmer], [HLADAPTER_STLINK]],
 	[[ti_icdi], [TI ICDI JTAG Programmer], [HLADAPTER_ICDI]],
 	[[ulink], [Keil ULINK JTAG Programmer], [ULINK]],
@@ -142,6 +143,7 @@ m4_define([LIBFTDI_ADAPTERS],
 m4_define([LIBJAYLINK_ADAPTERS],
 	[[[jlink], [SEGGER J-Link Programmer], [JLINK]]])
 
+AM_EXPAT_LINK
 
 AC_ARG_ENABLE([doxygen-html],
   AS_HELP_STRING([--disable-doxygen-html],
@@ -695,6 +697,7 @@ AM_CONDITIONAL([DUMMY], [test "x$build_dummy" = "xyes"])
 AM_CONDITIONAL([GIVEIO], [test "x$parport_use_giveio" = "xyes"])
 AM_CONDITIONAL([EP93XX], [test "x$build_ep93xx" = "xyes"])
 AM_CONDITIONAL([ZY1000], [test "x$build_zy1000" = "xyes"])
+AM_CONDITIONAL([ICE_1000], [test "x$build_ice1000" != "xno"])
 AM_CONDITIONAL([ZY1000_MASTER], [test "x$build_zy1000_master" = "xyes"])
 AM_CONDITIONAL([IOUTIL], [test "x$build_ioutil" = "xyes"])
 AM_CONDITIONAL([AT91RM9200], [test "x$build_at91rm9200" = "xyes"])

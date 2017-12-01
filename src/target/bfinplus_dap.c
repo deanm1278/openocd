@@ -71,12 +71,11 @@ int bfinplus_debug_register_get(struct target *target, uint8_t reg, uint32_t *va
 {
 	int retval;
 	struct bfinplus_common *bfin = target_to_bfinplus(target);
-	struct adiv5_dap *swjdp = &(bfin->dap.dap);
+	struct bfinplus_dap *dap = &bfin->dap;
 
 	uint8_t buf[4];
-	dap_ap_select(swjdp, BFINPLUS_APB_AP);
-	retval = mem_ap_read(swjdp, buf, sizeof(uint32_t), 1,
-		BFINPLUS_JTAG_DBG_BASE + reg, false);
+	retval = mem_ap_read_buf_noincr(dap->debug_ap, buf, sizeof(uint32_t), 1,
+		BFINPLUS_JTAG_DBG_BASE + reg);
 
 	*value = buf_get_u32(buf, 0, 32);
 
@@ -87,13 +86,12 @@ int bfinplus_debug_register_set(struct target *target, uint8_t reg, uint32_t val
 {
 	int retval;
 	struct bfinplus_common *bfin = target_to_bfinplus(target);
-	struct adiv5_dap *swjdp = &(bfin->dap.dap);
+	struct bfinplus_dap *dap = &bfin->dap;
 
 	uint8_t buf[4];
-	dap_ap_select(swjdp, BFINPLUS_APB_AP);
 	buf_set_u32(buf, 0, 32, value);
-	retval = mem_ap_write(swjdp, buf, sizeof(uint32_t), 1,
-		BFINPLUS_JTAG_DBG_BASE + reg, true);
+	retval = mem_ap_write_buf(dap->debug_ap, buf, sizeof(uint32_t), 1,
+		BFINPLUS_JTAG_DBG_BASE + reg);
 
 	return retval;
 }
@@ -118,12 +116,11 @@ uint32_t offset, uint32_t *value)
 {
 	int retval;
 	struct bfinplus_common *bfin = target_to_bfinplus(target);
-	struct adiv5_dap *swjdp = &(bfin->dap.dap);
+	struct bfinplus_dap *dap = &bfin->dap;
 
 	uint8_t buf[4];
-	dap_ap_select(swjdp, BFINPLUS_APB_AP);
-	retval = mem_ap_read(swjdp, buf, sizeof(uint32_t), 1,
-		ctibase + offset, false);
+	retval = mem_ap_read_buf_noincr(dap->memory_ap, buf, sizeof(uint32_t), 1,
+		ctibase + offset);
 
 	*value = buf_get_u32(buf, 0, 32);
 
@@ -135,13 +132,12 @@ uint32_t offset, uint32_t value)
 {
 	int retval;
 	struct bfinplus_common *bfin = target_to_bfinplus(target);
-	struct adiv5_dap *swjdp = &(bfin->dap.dap);
+	struct bfinplus_dap *dap = &bfin->dap;
 
 	uint8_t buf[4];
-	dap_ap_select(swjdp, BFINPLUS_APB_AP);
 	buf_set_u32(buf, 0, 32, value);
-	retval = mem_ap_write(swjdp, buf, sizeof(uint32_t), 1,
-		ctibase + offset, true);
+	retval = mem_ap_write_buf(dap->memory_ap, buf, sizeof(uint32_t), 1,
+		ctibase + offset);
 
 	return retval;
 }
@@ -150,11 +146,8 @@ int bfinplus_coreregister_get(struct target *target, enum core_regnum regnum, ui
 {
 	int retval;
 	uint8_t reg = regnum&0xFF;
-	struct bfinplus_common *bfin = target_to_bfinplus(target);
-	struct adiv5_dap *swjdp = &(bfin->dap.dap);
 
 	LOG_DEBUG("get register 0x%08" PRIx32, reg);
-	dap_ap_select(swjdp, BFINPLUS_APB_AP);
 
 	bfinplus_emuir_set(target, blackfin_gen_move(REG_EMUDAT, reg));
 	retval = bfinplus_emudat_get(target, value);
@@ -179,11 +172,8 @@ int bfinplus_coreregister_set(struct target *target, enum core_regnum regnum, ui
 {
 	int retval;
 	uint8_t reg = regnum&0xFF;
-	struct bfinplus_common *bfin = target_to_bfinplus(target);
-	struct adiv5_dap *swjdp = &(bfin->dap.dap);
 
 	LOG_DEBUG("set register 0x%08" PRIx32, reg);
-	dap_ap_select(swjdp, BFINPLUS_APB_AP);
 
 	bfinplus_emudat_set(target, value);
 	retval = bfinplus_emuir_set(target, blackfin_gen_move(reg, REG_EMUDAT));
@@ -205,11 +195,8 @@ int bfinplus_mmr_get_indirect(struct target *target, uint32_t addr, uint32_t *va
 	int retval;
 	uint32_t r0, p0;
 	struct bfinplus_common *bfin = target_to_bfinplus(target);
-	struct adiv5_dap *swjdp = &(bfin->dap.dap);
 
 	LOG_DEBUG("get mmr indirect 0x%08" PRIx32, addr);
-
-	dap_ap_select(swjdp, BFINPLUS_APB_AP);
 
 	p0 = bfinplus_get_p0(target);
 	r0 = bfinplus_get_r0(target);
@@ -243,10 +230,8 @@ int bfinplus_mmr_set_indirect(struct target *target, uint32_t addr, uint32_t val
 {
 	int retval;
 	struct bfinplus_common *bfin = target_to_bfinplus(target);
-	struct adiv5_dap *swjdp = &(bfin->dap.dap);
 
 	LOG_DEBUG("set mmr indirect 0x%08" PRIx32, addr);
-	dap_ap_select(swjdp, BFINPLUS_APB_AP);
 
 	if (addr == BFINPLUS_L1DM_DCTL)
     {
@@ -357,12 +342,11 @@ int bfinplus_mmr_get32(struct target *target, uint32_t addr, uint32_t *value)
 {
 	int retval;
 	struct bfinplus_common *bfin = target_to_bfinplus(target);
-	struct adiv5_dap *swjdp = &(bfin->dap.dap);
+	struct bfinplus_dap *dap = &bfin->dap;
 
 	uint8_t buf[4];
 	//TODO: check cache status?	
-	dap_ap_select(swjdp, BFINPLUS_AHB_AP);
-	retval = mem_ap_read(swjdp, buf, sizeof(uint32_t), 1, addr, true);
+	retval = mem_ap_read_buf(dap->memory_ap, buf, sizeof(uint32_t), 1, addr);
 
 	*value = buf_get_u32(buf, 0, 32);
 
@@ -373,14 +357,13 @@ int bfinplus_mmr_set32(struct target *target, uint32_t addr, uint32_t value)
 {
 	int retval;
 	struct bfinplus_common *bfin = target_to_bfinplus(target);
-	struct adiv5_dap *swjdp = &(bfin->dap.dap);
+	struct bfinplus_dap *dap = &bfin->dap;
 
 	uint8_t buf[4];
 	//cache_status_get(target);
-	dap_ap_select(swjdp, BFINPLUS_AHB_AP);
 	buf_set_u32(buf, 0, 32, value);
 	//TODO: check cache status?	
-	retval = mem_ap_write(swjdp, buf, sizeof(uint32_t), 1, addr, true);
+	retval = mem_ap_write_buf(dap->memory_ap, buf, sizeof(uint32_t), 1, addr);
 
 	return retval;
 }
@@ -389,22 +372,22 @@ int bfinplus_read_mem(struct target *target, uint32_t addr,
 		uint32_t size, uint32_t count, uint8_t *buf)
 {
 	struct bfinplus_common *bfin = target_to_bfinplus(target);
-	struct adiv5_dap *swjdp = &(bfin->dap.dap);
+	struct bfinplus_dap *dap = &bfin->dap;
 
 	//TODO: set CSW based on size?
 	//cache_status_get(target);
-	return mem_ap_sel_read_buf(swjdp, BFINPLUS_AHB_AP, buf, size, count, addr);
+	return mem_ap_read_buf(dap->memory_ap, buf, size, count, addr);
 }
 
 int bfinplus_write_mem(struct target *target, uint32_t addr,
 		uint32_t size, uint32_t count, const uint8_t *buf)
 {
 	struct bfinplus_common *bfin = target_to_bfinplus(target);
-	struct adiv5_dap *swjdp = &(bfin->dap.dap);
+	struct bfinplus_dap *dap = &bfin->dap;
 
 	//TODO: set CSW based on size?
 	//cache_status_get(target);
-	return mem_ap_write(swjdp, buf, size, count, addr, true);
+	return mem_ap_write_buf(dap->memory_ap, buf, size, count, addr);
 }
 
 void bfinplus_wpu_init(struct target *target)

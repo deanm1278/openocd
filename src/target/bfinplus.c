@@ -542,7 +542,7 @@ static int bfinplus_resume_1(struct target *target, int current,
 }
 
 static int bfinplus_resume(struct target *target, int current,
-    uint32_t address, int handle_breakpoints, int debug_execution)
+    uint64_t address, int handle_breakpoints, int debug_execution)
 {
   int retval;
 
@@ -552,7 +552,7 @@ static int bfinplus_resume(struct target *target, int current,
 }
 
 static int bfinplus_step(struct target *target, int current,
-    uint32_t address, int handle_breakpoints)
+    uint64_t address, int handle_breakpoints)
 {
 	int retval;
 
@@ -624,12 +624,12 @@ static int bfinplus_get_gdb_reg_list(struct target *target, struct reg **reg_lis
   return ERROR_OK;
 }
 
-static int bfinplus_read_memory(struct target *target, uint32_t address,
+static int bfinplus_read_memory(struct target *target, uint64_t address,
     uint32_t size, uint32_t count, uint8_t *buffer)
 {
   int retval;
 
-  LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", address, size, count);
+  LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", (uint32_t)address, size, count);
 
   if (target->state != TARGET_HALTED)
   {
@@ -643,13 +643,13 @@ static int bfinplus_read_memory(struct target *target, uint32_t address,
   return retval;
 }
 
-static int bfinplus_write_memory(struct target *target, uint32_t address,
+static int bfinplus_write_memory(struct target *target, uint64_t address,
     uint32_t size, uint32_t count, const uint8_t *buffer)
 {
   int retval;
 
   LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
-      address, size, count);
+      (uint32_t)address, size, count);
 
   if (target->state != TARGET_HALTED)
   {
@@ -664,22 +664,21 @@ static int bfinplus_write_memory(struct target *target, uint32_t address,
 }
 
 static int bfinplus_checksum_memory(struct target *target,
-    uint32_t address, uint32_t count, uint32_t* checksum)
+    uint64_t address, uint32_t count, uint32_t* checksum)
 {
   return ERROR_FAIL;
 }
 
-static int bfinplus_blank_check_memory(struct target *target,
-    uint32_t address, uint32_t count, uint32_t* blank)
+static int bfinplus_blank_check_memory(struct target *target, target_addr_t address,
+      uint32_t count, uint32_t *blank, uint8_t erased_value)
 {
   return ERROR_FAIL;
 }
 
-static int bfinplus_run_algorithm(struct target *target,
-    int num_mem_params, struct mem_param *mem_params,
-    int num_reg_params, struct reg_param *reg_params,
-    uint32_t entry_point, uint32_t exit_point,
-    int timeout_ms, void *arch_info)
+static int bfinplus_run_algorithm(struct target *target, int num_mem_params,
+      struct mem_param *mem_params, int num_reg_params,
+      struct reg_param *reg_param, target_addr_t entry_point,
+      target_addr_t exit_point, int timeout_ms, void *arch_info)
 {
   return ERROR_FAIL;
 }
@@ -1064,6 +1063,7 @@ static int bfinplus_target_create(struct target *target, Jim_Interp *interp)
   dap->memaccess_tck = 80;
 #endif
   tap->dap = dap;
+  dap->tap = tap;
 
   return ERROR_OK;
 }
@@ -1193,9 +1193,37 @@ static int bfinplus_examine(struct target *target)
   int i;
   int retval = ERROR_OK;
 
-  retval = ahbap_debugport_init(swjdp);
-  if (retval != ERROR_OK)
+  retval = dap_dp_init(swjdp);
+  	if (retval != ERROR_OK) {
+  		LOG_ERROR("Could not initialize the debug port");
+  		return retval;
+  	}
+
+
+  /* Search for the APB-AP - it is needed for access to debug registers */
+  retval = dap_find_ap(swjdp, AP_TYPE_APB_AP, &dap->debug_ap);
+  if (retval != ERROR_OK) {
+    LOG_ERROR("Could not find APB-AP for debug access");
     return retval;
+  }
+  dap->debug_ap->memaccess_tck = 80;
+
+  retval = mem_ap_init(dap->debug_ap);
+  if (retval != ERROR_OK) {
+    LOG_ERROR("Could not initialize the APB-AP");
+    return retval;
+  }
+
+  retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &dap->memory_ap);
+  if (retval == ERROR_OK) {
+    retval = mem_ap_init(dap->memory_ap);
+  }
+  dap->memory_ap->memaccess_tck = 80;
+
+  if (retval != ERROR_OK) {
+    /* AHB-AP not found or unavailable - use the CPU */
+    LOG_DEBUG("No AHB-AP available for memory access");
+  }
 
   if (!target_was_examined(target))
   {
