@@ -597,8 +597,8 @@ void bfinplus_core_reset(struct target *target)
 	bfinplus_mmr_set_indirect(target, 0x20000000, 0x01); //RCU0_CTL.SYSRST = 1
 
 	bfinplus_mmr_get32(target, 0x20000004, &val); //read RCU0_STAT
-	if(val != 0x00002129){
-		LOG_ERROR("RCU0_STAT not right");
+	if( (val & 0xFFFF0029) != 0x29){
+		LOG_ERROR("RCU0_STAT error!");
 	}
 
 	bfinplus_mmr_set32(target, 0x20000064, 0x0); //RCU0_MSG_SET = 0
@@ -621,10 +621,6 @@ void bfinplus_system_reset(struct target *target)
 	bfinplus_cti_register_set(target, BFINPLUS_PROCCTI_BASE, CTILOCKACCESS_OFFSET, 0xC5ACCE55);
 	bfinplus_cti_register_set(target, BFINPLUS_PROCCTI_BASE, CTICONTROL_OFFSET, 0x01);
 	bfinplus_cti_register_set(target, BFINPLUS_SYSCTI_BASE, CTICONTROL_OFFSET, 0x01);
-
-	//TODO: we can't hardcode this
-	bfinplus_mmr_set32(target, 0x2000200C, 0x42042442); //CGU0_DIV
-	bfinplus_mmr_set32(target, 0x20002000, 0x00002000); //CGU0_CTL
 
 	bfinplus_mmr_set_indirect(target, BFINPLUS_L1IM_ICTL, 0x207);
 	bfinplus_mmr_set_indirect(target, BFINPLUS_L1IM_ICTL, 0x000);
