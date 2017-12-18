@@ -497,7 +497,7 @@ static int bfinplus_resume_1(struct target *target, int current,
 
   if (!current)
   {
-    bfinplus_coreregister_set(target, map_gdb_core[REG_RETE], address);
+	bfinplus_coreregister_set(target, map_gdb_core[REG_RETE], address);
   }
 
   bfinplus_debug_register_set(target, BFINPLUS_DBG_MYSTERY0, 0x02);
@@ -537,6 +537,8 @@ static int bfinplus_resume_1(struct target *target, int current,
 	  bfinplus_cti_register_set(target, BFINPLUS_PROCCTI_BASE, CTIOUTEN_OFFSET + (7 << 2), 0x0); //PROCCTI_CTIOUTEN7 = 0
 	  bfinplus_cti_register_set(target, BFINPLUS_SYSCTI_BASE, CTIINEN_OFFSET + (7 << 2), 0x0); //SYSCTI_CTINEN7 = 0
   }
+  else
+    bfinplus_restore_context(target);
 
   return ERROR_OK;
 }
