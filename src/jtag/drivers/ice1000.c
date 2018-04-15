@@ -921,18 +921,23 @@ static int adi_clock(int32_t tms, int32_t tdi, int32_t cnt)
 
 static int ice1000_init(void)
 {
-	const uint16_t vids[] = { 0x064b, 0 };
-	const uint16_t pids[] = { 0x0617, 0 };
+	const uint16_t vids[] = { 0x064b, 0x064b, 0 };
+	const uint16_t pids[] = { 0x0617, 0x586, 0 };
 
 	int retval;
 
+	//look for an ice-1000 or ex-kit
 	retval = adi_connect(vids, pids);
+
 	if (retval != ERROR_OK)
 	{
 		if (retval == -ENODEV)
-			LOG_ERROR("ICE-1000 emulator not found");
+			LOG_ERROR("ICE-1000 or comparable emulator not found");
 
-		LOG_ERROR("cannot connect to ICE-1000 emulator");
+		LOG_ERROR("cannot connect to ICE-1000 or comparable emulator");
+	}
+	else{
+		DEBUG("ez-kit emulator found!\n");
 	}
 
 	return retval;
