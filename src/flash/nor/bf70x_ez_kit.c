@@ -26,6 +26,43 @@
 
 #define EZ_FLASH			((uint32_t)0x00000000)
 
+#define EZ_LOAD_BASE_ADDR       (0x11900000ul)
+
+//the command register
+#define EZ_LOAD_CMD_OFFSET      (0x00ul)
+#define EZ_LOAD_CMD             (EZ_LOAD_BASE_ADDR + EZ_LOAD_CMD_OFFSET)
+
+//the address register
+#define EZ_LOAD_ADDR_OFFSET     (0x04ul)
+#define EZ_LOAD_ADDR            (EZ_LOAD_BASE_ADDR + EZ_LOAD_ADDR_OFFSET)
+
+//the count register
+#define EZ_LOAD_COUNT_OFFSET    (0x08ul)
+#define EZ_LOAD_COUNT           (EZ_LOAD_BASE_ADDR + EZ_LOAD_COUNT_OFFSET)
+
+//the status register
+#define EZ_LOAD_STATUS_OFFSET   (0x0Cul)
+#define EZ_LOAD_STATUS          (EZ_LOAD_BASE_ADDR + EZ_LOAD_STATUS_OFFSET)
+
+//the page buffer
+#define EZ_LOAD_PAGE_OFFSET     (0x10ul)
+#define EZ_LOAD_PAGE            (EZ_LOAD_BASE_ADDR + EZ_LOAD_PAGE_OFFSET)
+
+//the high byte must be set to this to execute
+#define EZ_CMD_EXECUTE          (0xA5ul)
+
+#define EZ_CMD_CHIP_ERASE       (0x01ul)
+#define EZ_CMD_ERASE_BLOCK      (0x02ul)
+#define EZ_CMD_WRITE_BLOCK      (0x03ul)
+#define EZ_CMD_READ_BLOCK       (0x04ul)
+#define EZ_CMD_INFO             (0x05ul)
+
+#define EZ_STATUS_OK            (0x00ul)
+#define EZ_STATUS_BUSY          (0x01ul)
+#define EZ_STATUS_ERROR         (0x02ul)
+
+#define EZ_CMD(x) ( (EZ_CMD_EXECUTE << 8) | (x) )
+
 struct ez_info {
 	uint32_t page_size;
 	int num_pages;
@@ -39,10 +76,6 @@ struct ez_info {
 
 static struct ez_info *ez_chips;
 
-static int ez_probe(struct flash_bank *bank){
-	return ERROR_OK;
-}
-
 static int ez_check_error(struct target *target)
 {
 	return ERROR_OK;
@@ -50,15 +83,31 @@ static int ez_check_error(struct target *target)
 
 static int ez_issue_command(struct target *target, uint16_t cmd)
 {
+	int res;
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	//TODO: issue the command
+	/* Issue the NVM command */
+	res = target_write_u16(target, EZ_LOAD_CMD, EZ_CMD(cmd));
+	if (res != ERROR_OK)
+		return res;
 
 	/* Check to see if the NVM command resulted in an error condition. */
-	return ez_check_error(target);
+	res = ez_check_error(target);
+	if (res != ERROR_OK)
+		return res;
+
+	/* Resume target so it can execute the command */
+	return target_resume(target, 1, 0, 0, 0);
+}
+
+static int ez_probe(struct flash_bank *bank){
+
+	ez_issue_command(bank->target, EZ_CMD_INFO);
+
+	return ERROR_OK;
 }
 
 static int ez_erase_row(struct target *target, uint32_t address)
@@ -159,8 +208,6 @@ COMMAND_HANDLER(ez_handle_chip_erase_command)
 
 		if (res == ERROR_OK)
 			command_print(CMD_CTX, "chip erase started");
-		else
-			command_print(CMD_CTX, "write to DSU CTRL failed");
 	}
 
 	return res;
