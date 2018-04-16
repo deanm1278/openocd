@@ -19,6 +19,7 @@ NOR_DRIVERS = \
 	%D%/ath79.c \
 	%D%/atsamv.c \
 	%D%/avrf.c \
+	%D%/bf70x_ez_kit.c \
 	%D%/cfi.c \
 	%D%/dsp5680xx_flash.c \
 	%D%/efm32.c \

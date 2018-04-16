@@ -32,6 +32,7 @@ extern struct flash_driver at91samd5_flash;
 extern struct flash_driver ath79_flash;
 extern struct flash_driver atsamv_flash;
 extern struct flash_driver avr_flash;
+extern struct flash_driver bf70x_ez_kit_flash;
 extern struct flash_driver cfi_flash;
 extern struct flash_driver dsp5680xx_flash;
 extern struct flash_driver efm32_flash;
