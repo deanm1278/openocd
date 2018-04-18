@@ -61,6 +61,8 @@
 #define EZ_STATUS_BUSY          (0x01ul)
 #define EZ_STATUS_ERROR         (0x02ul)
 
+#define EZ_LOAD_IDCODE          (0x56ul)
+
 #define EZ_CMD(x) ( (EZ_CMD_EXECUTE << 8) | (x) )
 
 struct ez_info {
@@ -139,13 +141,49 @@ static int ez_issue_command(struct target *target, uint16_t cmd)
 	else return ERROR_OK;
 }
 
+static int ez_read_data(struct target *target, uint32_t *buf, uint32_t count){
+	int res;
+	uint16_t status = EZ_STATUS_BUSY;
+
+	//wait for ready
+	while(status != EZ_STATUS_OK){
+		res = ez_check_status(target, &status);
+		if (res != ERROR_OK)
+			return res;
+	}
+
+	res = halt_target(target);
+	if (res != ERROR_OK)
+		return res;
+
+	//read the data in the page buffer
+	res = target_read_memory(target, EZ_LOAD_PAGE, 4, count, (uint8_t *)buf);
+	if (res != ERROR_OK)
+		return res;
+
+	return target_resume(target, 1, 0, 0, 0);
+}
+
 static int ez_probe(struct flash_bank *bank){
+	int res;
 
 	LOG_DEBUG("probing");
 
-	ez_issue_command(bank->target, EZ_CMD_INFO);
+	res = ez_issue_command(bank->target, EZ_CMD_INFO);
+	if (res != ERROR_OK)
+		return res;
 
-	return ERROR_OK;
+	uint32_t idcode;
+	res = ez_read_data(bank->target, &idcode, 1);
+	if (res != ERROR_OK)
+		return res;
+
+	if(idcode != EZ_LOAD_IDCODE){
+		LOG_ERROR("icode mismatch! Received idcode: 0x%" PRIx32 ". Check that your bootloader is correct.", idcode);
+		return ERROR_FAIL;
+	}
+	else
+		return ERROR_OK;
 }
 
 static int ez_erase_row(struct target *target, uint32_t address)

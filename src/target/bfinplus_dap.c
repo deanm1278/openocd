@@ -591,6 +591,7 @@ void bfinplus_wpu_set_wpda(struct target *target, int n)
 void bfinplus_core_reset(struct target *target)
 {
 	uint32_t val;
+	LOG_DEBUG("core reset");
 	bfinplus_mmr_set32(target, 0x2000001C, 0x04); //RCU0_BCODE.HALT = 1
 
 	bfinplus_mmr_set_indirect(target, BFINPLUS_L1IM_ICTL, 0x207);
@@ -614,6 +615,7 @@ void bfinplus_core_reset(struct target *target)
 
 void bfinplus_system_reset(struct target *target)
 {
+	LOG_DEBUG("system reset");
 	bfinplus_mmr_set_indirect(target, BFINPLUS_L1IM_ICTL, 0x207);
 
 	bfinplus_cti_register_set(target, BFINPLUS_PROCCTI_BASE, CTILOCKACCESS_OFFSET, 0xC5ACCE55);

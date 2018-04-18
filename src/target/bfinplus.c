@@ -311,6 +311,9 @@ static int bfinplus_set_core_reg(struct reg *reg, uint8_t *buf)
   reg->dirty = 1;
   reg->valid = 1;
 
+  LOG_DEBUG("set core reg 0x%" PRIx32, bfinplus_reg->num);
+  LOG_DEBUG("new value 0x%" PRIx32, value);
+
   return ERROR_OK;
 }
 
@@ -340,6 +343,8 @@ static void bfinplus_restore_context(struct target *target)
 {
   struct bfinplus_common *bfinplus = target_to_bfinplus(target);
   int i;
+
+  LOG_DEBUG("restore context");
 
   for (i = 0; i < BFINPLUSNUMCOREREGS; i++)
   {
