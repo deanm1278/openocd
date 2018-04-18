@@ -76,34 +76,72 @@ struct ez_info {
 
 static struct ez_info *ez_chips;
 
-static int ez_check_error(struct target *target)
+static int halt_target(struct target *target)
 {
+	int res;
+	if (target->state != TARGET_HALTED) {
+		res = target_halt(target);
+		if (res != ERROR_OK)
+			return res;
+
+		//wait for the target to be halted
+		while(target->state != TARGET_HALTED){
+			usleep(10);
+			res = target_poll(target);
+			if (res != ERROR_OK)
+				return res;
+		}
+	}
 	return ERROR_OK;
+}
+
+static int ez_check_status(struct target *target, uint16_t *status)
+{
+	int res;
+
+	res = halt_target(target);
+	if (res != ERROR_OK)
+		return res;
+
+	res = target_read_u16(target, EZ_LOAD_STATUS, status);
+	if (res != ERROR_OK)
+		return res;
+
+	/* Resume target so it can execute command */
+	return target_resume(target, 1, 0, 0, 0);
 }
 
 static int ez_issue_command(struct target *target, uint16_t cmd)
 {
 	int res;
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
+	uint16_t err;
+	res = halt_target(target);
+	if (res != ERROR_OK)
+		return res;
+
+	LOG_DEBUG("issue cmd: 0x%" PRIx32, (uint32_t)cmd);
 
 	/* Issue the NVM command */
 	res = target_write_u16(target, EZ_LOAD_CMD, EZ_CMD(cmd));
 	if (res != ERROR_OK)
 		return res;
 
-	/* Check to see if the NVM command resulted in an error condition. */
-	res = ez_check_error(target);
+	/* Resume target so it can execute command */
+	res = target_resume(target, 1, 0, 0, 0);
 	if (res != ERROR_OK)
 		return res;
 
-	/* Resume target so it can execute the command */
-	return target_resume(target, 1, 0, 0, 0);
+	res = ez_check_status(target, &err);
+	if (res != ERROR_OK)
+		return res;
+	else if (err == EZ_STATUS_ERROR)
+		return ERROR_FAIL;
+	else return ERROR_OK;
 }
 
 static int ez_probe(struct flash_bank *bank){
+
+	LOG_DEBUG("probing");
 
 	ez_issue_command(bank->target, EZ_CMD_INFO);
 
@@ -112,17 +150,19 @@ static int ez_probe(struct flash_bank *bank){
 
 static int ez_erase_row(struct target *target, uint32_t address)
 {
-
+	LOG_DEBUG("erase row at: 0x%" PRIx32, address);
 	return ERROR_OK;
 }
 
 static int ez_protect(struct flash_bank *bank, int set, int first_prot_bl, int last_prot_bl)
 {
+	LOG_DEBUG("protect command received. Not doing anything.");
 	return ERROR_OK;
 }
 
 static int ez_protect_check(struct flash_bank *bank)
 {
+	LOG_DEBUG("protect check command received. Not doing anything.");
 	return ERROR_OK;
 }
 
@@ -134,6 +174,8 @@ static int ez_erase(struct flash_bank *bank, int first_sect, int last_sect)
 		if (ez_probe(bank) != ERROR_OK)
 			return ERROR_FLASH_BANK_NOT_PROBED;
 	}
+	LOG_DEBUG("erase at: 0x%" PRIx32, (uint32_t)first_sect);
+	LOG_DEBUG("end erase at: 0x%" PRIx32, (uint32_t)last_sect);
 
 	return ERROR_OK;
 }
@@ -144,15 +186,12 @@ static int ez_write(struct flash_bank *bank, const uint8_t *buffer,
 {
 	struct ez_info *chip = ez_chips;
 
-	if (bank->target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
 	if (!chip->probed) {
 		if (ez_probe(bank) != ERROR_OK)
 			return ERROR_FLASH_BANK_NOT_PROBED;
 	}
+
+	LOG_DEBUG("write bytes at: 0x%" PRIx32, (uint32_t)offset);
 
 	return ERROR_OK;
 }
@@ -242,7 +281,7 @@ static const struct command_registration bf70xEzKit_command_handlers[] = {
 };
 
 struct flash_driver bf70x_ez_kit_flash = {
-	.name = "bf70x ez-kit",
+	.name = "bf70x-ez-kit",
 	.commands = bf70xEzKit_command_handlers,
 	.flash_bank_command = ez_flash_bank_command,
 	.erase = ez_erase,

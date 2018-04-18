@@ -88,6 +88,7 @@ static struct flash_driver *flash_drivers[] = {
 	&ath79_flash,
 	&atsamv_flash,
 	&avr_flash,
+	&bf70x_ez_kit_flash,
 	&cfi_flash,
 	&dsp5680xx_flash,
 	&efm32_flash,
