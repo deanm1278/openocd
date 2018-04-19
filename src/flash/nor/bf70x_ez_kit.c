@@ -63,6 +63,11 @@
 
 #define EZ_LOAD_IDCODE          (0x56ul)
 
+#define FLASH_BLOCKSIZE			(65536ul)
+#define FLASH_NUM_BLOCKS		(32ul)
+
+#define BUF_MAX					((uint32_t)(16 * 1024))
+
 #define EZ_CMD(x) ( (EZ_CMD_EXECUTE << 8) | (x) )
 
 struct ez_info {
@@ -113,6 +118,23 @@ static int ez_check_status(struct target *target, uint16_t *status)
 	return target_resume(target, 1, 0, 0, 0);
 }
 
+static int wait_ready(struct target *target)
+{
+	int res;
+
+	uint16_t status = EZ_STATUS_BUSY;
+	while(status != EZ_STATUS_OK){
+		res = ez_check_status(target, &status);
+		if (res != ERROR_OK)
+			return res;
+
+		if(status == EZ_STATUS_ERROR)
+			return ERROR_FAIL;
+	}
+	return ERROR_OK;
+}
+
+
 static int ez_issue_command(struct target *target, uint16_t cmd)
 {
 	int res;
@@ -143,14 +165,9 @@ static int ez_issue_command(struct target *target, uint16_t cmd)
 
 static int ez_read_data(struct target *target, uint32_t *buf, uint32_t count){
 	int res;
-	uint16_t status = EZ_STATUS_BUSY;
-
-	//wait for ready
-	while(status != EZ_STATUS_OK){
-		res = ez_check_status(target, &status);
-		if (res != ERROR_OK)
-			return res;
-	}
+	res = wait_ready(target);
+	if (res != ERROR_OK)
+		return res;
 
 	res = halt_target(target);
 	if (res != ERROR_OK)
@@ -186,11 +203,42 @@ static int ez_probe(struct flash_bank *bank){
 		return ERROR_OK;
 }
 
+#if 0
 static int ez_erase_row(struct target *target, uint32_t address)
 {
+	int res;
+	uint16_t status;
+	res = halt_target(target);
+	if (res != ERROR_OK)
+		return res;
+
 	LOG_DEBUG("erase row at: 0x%" PRIx32, address);
+
+	res = target_write_u32(target, EZ_LOAD_ADDR, address);
+	if (res != ERROR_OK)
+		return res;
+
+	/* Issue the NVM command */
+	res = target_write_u16(target, EZ_LOAD_CMD, EZ_CMD(EZ_CMD_ERASE_BLOCK));
+	if (res != ERROR_OK)
+		return res;
+
+	/* Resume target so it can execute command */
+	res = target_resume(target, 1, 0, 0, 0);
+	if (res != ERROR_OK)
+		return res;
+
+	//wait for ready
+	status = EZ_STATUS_BUSY;
+	while(status != EZ_STATUS_OK){
+		res = ez_check_status(target, &status);
+		if (res != ERROR_OK)
+			return res;
+	}
+
 	return ERROR_OK;
 }
+#endif
 
 static int ez_protect(struct flash_bank *bank, int set, int first_prot_bl, int last_prot_bl)
 {
@@ -222,14 +270,79 @@ static int ez_erase(struct flash_bank *bank, int first_sect, int last_sect)
 static int ez_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
+	int res;
 	struct ez_info *chip = ez_chips;
 
 	if (!chip->probed) {
 		if (ez_probe(bank) != ERROR_OK)
 			return ERROR_FLASH_BANK_NOT_PROBED;
 	}
+	LOG_DEBUG("erasing...");
 
-	LOG_DEBUG("write bytes at: 0x%" PRIx32, (uint32_t)offset);
+	//just erase the whole chip for now
+	res = ez_issue_command(bank->target, EZ_CMD_CHIP_ERASE);
+	if (res != ERROR_OK)
+		return res;
+
+	res = wait_ready(bank->target);
+	if (res != ERROR_OK)
+		return res;
+
+	LOG_DEBUG("writing image of 0x%" PRIx32 " bytes at offset : 0x%" PRIx32, (uint32_t)count, (uint32_t)offset);
+
+	uint32_t addr = offset;
+	uint32_t toWrite = 0;
+
+	while(count > 0){
+		res = halt_target(bank->target);
+		if (res != ERROR_OK)
+			return res;
+
+		res = target_write_u32(bank->target, EZ_LOAD_ADDR, addr);
+		if (res != ERROR_OK)
+			return res;
+
+		if(count >= BUF_MAX){
+			toWrite = BUF_MAX;
+			count -= BUF_MAX;
+		}
+		else{
+			toWrite = count;
+			count = 0;
+		}
+
+		LOG_DEBUG("writing 0x%" PRIx32 " bytes at: 0x%" PRIx32, (uint32_t)toWrite, (uint32_t)addr);
+		LOG_DEBUG("0x%" PRIx32 " bytes remain", (uint32_t)count);
+
+		res = target_write_u32(bank->target, EZ_LOAD_COUNT, toWrite/4);
+		if (res != ERROR_OK)
+			return res;
+
+		res = target_write_memory(bank->target, EZ_LOAD_PAGE, 4, toWrite/4, buffer);
+		buffer += toWrite;
+		addr += toWrite;
+
+		uint16_t status = EZ_STATUS_BUSY;
+		while(status != EZ_STATUS_OK){
+			res = ez_check_status(bank->target, &status);
+			if (res != ERROR_OK)
+				return res;
+
+			if(status == EZ_STATUS_ERROR)
+				return ERROR_FAIL;
+
+			usleep(10);
+		}
+
+		res = ez_issue_command(bank->target, EZ_CMD_WRITE_BLOCK);
+		if (res != ERROR_OK)
+			return res;
+
+		res = wait_ready(bank->target);
+		if (res != ERROR_OK)
+			return res;
+
+	}
 
 	return ERROR_OK;
 }
