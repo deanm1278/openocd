@@ -1,4 +1,4 @@
-# This fork contains support for the following chips that are not in the mainline
+## This fork contains support for the following chips that are not in the mainline
 * Analog Devices Blackfin+ line (ADSPBF70x devices)
 * Microchip ATSAMD51 line
 
