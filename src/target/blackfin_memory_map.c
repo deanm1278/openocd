@@ -17,6 +17,12 @@ int parse_memory_map(struct target *target, const char *memory_map)
 	return ERROR_FAIL;
 }
 
+int parse_memory_map_bfinplus(struct target *target, const char *memory_map)
+{
+	//nobody cares
+	return ERROR_OK;
+}
+
 #else /* HAVE_LIBEXPAT */
 
 #include "xml_support.h"
